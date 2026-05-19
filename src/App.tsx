@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
 import { introVideo, quizQuestions, type QuizQuestion } from './data/quiz'
 
@@ -9,6 +9,18 @@ type AnswerResult = {
   submittedAnswer: string
 }
 
+type StoredQuizProgress = {
+  stage: Stage
+  currentQuestionIndex: number
+  selectedOption: string
+  textAnswer: string
+  answerResult: AnswerResult | null
+  correctCount: number
+  shotCount: number
+}
+
+const quizProgressStorageKey = 'bachelorette-quiz-progress'
+
 const normalizeAnswer = (answer: string) => answer.trim().toLowerCase()
 
 const getCorrectAnswerLabel = (question: QuizQuestion) =>
@@ -16,17 +28,116 @@ const getCorrectAnswerLabel = (question: QuizQuestion) =>
     ? question.correctAnswer
     : question.displayAnswer
 
+const defaultQuizProgress: StoredQuizProgress = {
+  stage: 'intro',
+  currentQuestionIndex: 0,
+  selectedOption: '',
+  textAnswer: '',
+  answerResult: null,
+  correctCount: 0,
+  shotCount: 0,
+}
+
+const isStage = (stage: unknown): stage is Stage =>
+  ['intro', 'question', 'reveal', 'video', 'finish'].includes(String(stage))
+
+const isAnswerResult = (answerResult: unknown): answerResult is AnswerResult | null => {
+  if (answerResult === null) {
+    return true
+  }
+
+  if (!answerResult || typeof answerResult !== 'object') {
+    return false
+  }
+
+  const result = answerResult as Record<string, unknown>
+
+  return (
+    typeof result.isCorrect === 'boolean' &&
+    typeof result.submittedAnswer === 'string'
+  )
+}
+
+const loadQuizProgress = (): StoredQuizProgress => {
+  if (typeof window === 'undefined') {
+    return defaultQuizProgress
+  }
+
+  const savedProgress = window.localStorage.getItem(quizProgressStorageKey)
+
+  if (!savedProgress) {
+    return defaultQuizProgress
+  }
+
+  try {
+    const parsedProgress = JSON.parse(savedProgress) as Partial<StoredQuizProgress>
+    const currentQuestionIndex = Number(parsedProgress.currentQuestionIndex)
+
+    if (
+      !isStage(parsedProgress.stage) ||
+      !Number.isInteger(currentQuestionIndex) ||
+      currentQuestionIndex < 0 ||
+      currentQuestionIndex >= quizQuestions.length ||
+      !isAnswerResult(parsedProgress.answerResult)
+    ) {
+      return defaultQuizProgress
+    }
+
+    if (
+      (parsedProgress.stage === 'reveal' || parsedProgress.stage === 'video') &&
+      !parsedProgress.answerResult
+    ) {
+      return defaultQuizProgress
+    }
+
+    return {
+      stage: parsedProgress.stage,
+      currentQuestionIndex,
+      selectedOption:
+        typeof parsedProgress.selectedOption === 'string'
+          ? parsedProgress.selectedOption
+          : '',
+      textAnswer:
+        typeof parsedProgress.textAnswer === 'string'
+          ? parsedProgress.textAnswer
+          : '',
+      answerResult: parsedProgress.answerResult,
+      correctCount:
+        typeof parsedProgress.correctCount === 'number' &&
+        Number.isInteger(parsedProgress.correctCount)
+        ? parsedProgress.correctCount
+        : 0,
+      shotCount:
+        typeof parsedProgress.shotCount === 'number' &&
+        Number.isInteger(parsedProgress.shotCount)
+        ? parsedProgress.shotCount
+        : 0,
+    }
+  } catch {
+    return defaultQuizProgress
+  }
+}
+
 const confettiPieces = Array.from({ length: 34 }, (_, index) => index)
 const shotBurstPieces = Array.from({ length: 10 }, (_, index) => index)
 
 function App() {
-  const [stage, setStage] = useState<Stage>('intro')
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
-  const [selectedOption, setSelectedOption] = useState('')
-  const [textAnswer, setTextAnswer] = useState('')
-  const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null)
-  const [correctCount, setCorrectCount] = useState(0)
-  const [shotCount, setShotCount] = useState(0)
+  const [initialQuizProgress] = useState(loadQuizProgress)
+  const [stage, setStage] = useState<Stage>(initialQuizProgress.stage)
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(
+    initialQuizProgress.currentQuestionIndex,
+  )
+  const [selectedOption, setSelectedOption] = useState(
+    initialQuizProgress.selectedOption,
+  )
+  const [textAnswer, setTextAnswer] = useState(initialQuizProgress.textAnswer)
+  const [answerResult, setAnswerResult] = useState<AnswerResult | null>(
+    initialQuizProgress.answerResult,
+  )
+  const [correctCount, setCorrectCount] = useState(
+    initialQuizProgress.correctCount,
+  )
+  const [shotCount, setShotCount] = useState(initialQuizProgress.shotCount)
   const [videoUnavailable, setVideoUnavailable] = useState(false)
 
   const currentQuestion = quizQuestions[currentQuestionIndex]
@@ -38,6 +149,31 @@ function App() {
       : stage === 'finish'
         ? 100
         : (questionNumber / totalQuestions) * 100
+
+  useEffect(() => {
+    const progress: StoredQuizProgress = {
+      stage,
+      currentQuestionIndex,
+      selectedOption,
+      textAnswer,
+      answerResult,
+      correctCount,
+      shotCount,
+    }
+
+    window.localStorage.setItem(
+      quizProgressStorageKey,
+      JSON.stringify(progress),
+    )
+  }, [
+    answerResult,
+    correctCount,
+    currentQuestionIndex,
+    selectedOption,
+    shotCount,
+    stage,
+    textAnswer,
+  ])
 
   const resetAnswerInputs = () => {
     setSelectedOption('')
