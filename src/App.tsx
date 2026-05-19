@@ -16,6 +16,9 @@ const getCorrectAnswerLabel = (question: QuizQuestion) =>
     ? question.correctAnswer
     : question.displayAnswer
 
+const confettiPieces = Array.from({ length: 34 }, (_, index) => index)
+const shotBurstPieces = Array.from({ length: 10 }, (_, index) => index)
+
 function App() {
   const [stage, setStage] = useState<Stage>('intro')
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
@@ -98,8 +101,8 @@ function App() {
       {videoUnavailable ? (
         <div className="video-placeholder">
           <p>{title}</p>
-          <strong>Video placeholder</strong>
-          <span>Add the file at {src} when it is ready.</span>
+          <strong>Video loading</strong>
+          <span>Get ready for the reveal.</span>
         </div>
       ) : (
         <video
@@ -123,8 +126,8 @@ function App() {
       <section className="quiz-card" aria-live="polite">
         <div className="card-header">
           <div>
-            <p className="eyebrow">Bachelorette Quiz Night</p>
-            <h1>How well does she know him?</h1>
+            <p className="eyebrow">Bachelorette Quiz</p>
+            <h1>How well do you know him?</h1>
           </div>
           <div className="score-pill">
             <span>{correctCount}</span> correct
@@ -141,13 +144,8 @@ function App() {
         {stage === 'intro' && (
           <div className="screen intro-screen">
             <div className="intro-copy">
-              <p className="section-label">Hosted with love from afar</p>
-              <h2>First, play your intro video.</h2>
-              <p>
-                Replace this placeholder with your game explanation. After the
-                intro, start the quiz and let the bride answer each question
-                before the groom reveals the truth.
-              </p>
+              <p className="section-label">A little message first</p>
+              <h2>Ready for the quiz?</h2>
             </div>
             {renderVideo(introVideo, 'Intro video')}
             <button
@@ -169,7 +167,6 @@ function App() {
               <span>
                 Question {questionNumber} of {totalQuestions}
               </span>
-              <span>{currentQuestion.type === 'text' ? 'Text' : 'Multiple choice'}</span>
             </div>
             <h2>{currentQuestion.question}</h2>
 
@@ -213,15 +210,40 @@ function App() {
         )}
 
         {stage === 'reveal' && answerResult && (
-          <div className="screen reveal-screen">
+          <div
+            className={
+              answerResult.isCorrect
+                ? 'screen reveal-screen correct-reveal'
+                : 'screen reveal-screen wrong-reveal'
+            }
+          >
+            {answerResult.isCorrect ? (
+              <div className="confetti-burst" aria-hidden="true">
+                {confettiPieces.map((piece) => (
+                  <span key={piece} />
+                ))}
+              </div>
+            ) : (
+              <div className="shot-burst" aria-hidden="true">
+                {shotBurstPieces.map((piece) => (
+                  <span key={piece} />
+                ))}
+              </div>
+            )}
             <p className="section-label">
               {answerResult.isCorrect ? 'She got it right' : 'Not quite'}
             </p>
             <h2>
               {answerResult.isCorrect
-                ? 'No shot needed this time.'
-                : 'Wrong answer. Everyone takes a shot.'}
+                ? 'Correct! Confetti moment.'
+                : 'Wrong answer.'}
             </h2>
+            {!answerResult.isCorrect && (
+              <div className="shot-callout">
+                <span>Drink a shot</span>
+                <strong>Everyone drinks now</strong>
+              </div>
+            )}
             <div className="answer-card">
               <span>Her answer</span>
               <strong>{answerResult.submittedAnswer}</strong>
@@ -230,12 +252,6 @@ function App() {
               <span>Correct answer</span>
               <strong>{getCorrectAnswerLabel(currentQuestion)}</strong>
             </div>
-            {!answerResult.isCorrect && (
-              <p className="shot-note">
-                Drink prompt: pause here for the shot before watching the groom
-                explain his answer.
-              </p>
-            )}
             <button className="primary-button" type="button" onClick={goToVideo}>
               Play groom's answer
             </button>
@@ -276,7 +292,7 @@ function App() {
               </div>
             </div>
             <p>
-              End with a toast, a group photo, and one last cheer for the bride.
+              Cheers to the bride.
             </p>
             <button
               className="secondary-button"
@@ -288,12 +304,6 @@ function App() {
           </div>
         )}
 
-        <footer className="host-note">
-          <p>
-            Host note: if a video is not ready yet, the placeholder explains
-            which file to add.
-          </p>
-        </footer>
       </section>
     </main>
   )
