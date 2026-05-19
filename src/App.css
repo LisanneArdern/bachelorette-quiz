@@ -133,8 +133,20 @@
 
 .reveal-screen {
   position: relative;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   isolation: isolate;
   overflow: hidden;
+}
+
+.reveal-screen > .section-label,
+.reveal-screen > h2,
+.reveal-screen > .shot-callout,
+.reveal-screen > .primary-button {
+  grid-column: 1 / -1;
+}
+
+.reveal-screen > .answer-card {
+  width: 100%;
 }
 
 .correct-reveal {
@@ -679,7 +691,7 @@
 
 .shot-callout span {
   color: #f8d772;
-  font-size: clamp(2.35rem, 9vw, 5.8rem);
+  font-size: clamp(2.35rem, 7vw, 5rem);
   font-weight: 950;
   letter-spacing: 0.04em;
   line-height: 0.9;
@@ -789,6 +801,43 @@
   }
 }
 
+@media (min-width: 721px) {
+  .quiz-card {
+    max-height: calc(100svh - 24px);
+  }
+
+  .reveal-screen {
+    gap: clamp(10px, 1.8svh, 16px) 16px;
+    align-content: start;
+    padding-block: clamp(14px, 2.2svh, 22px);
+  }
+
+  .reveal-screen > h2 {
+    font-size: clamp(1.9rem, 4.2svh, 2.7rem);
+  }
+
+  .shot-callout {
+    width: min(100%, 560px);
+    padding: clamp(12px, 2svh, 18px);
+  }
+
+  .shot-callout span {
+    font-size: clamp(2.8rem, 8svh, 4.6rem);
+  }
+
+  .shot-callout strong {
+    font-size: clamp(0.95rem, 2.4svh, 1.35rem);
+  }
+
+  .answer-card {
+    border-radius: 18px;
+  }
+
+  .answer-card strong {
+    font-size: 1.08rem;
+  }
+}
+
 @media (max-width: 720px) {
   .app-shell {
     padding: 8px;
@@ -835,6 +884,10 @@
     gap: 10px;
     align-content: space-evenly;
     padding: 14px;
+  }
+
+  .reveal-screen {
+    grid-template-columns: 1fr;
   }
 
   .screen h2 {
